@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SGCL | Quản lý giám sát tàu biển</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#0b1f33;
+  --navy-2:#14314e;
+  --blue:#0d6e8a;
+  --blue-hover:#09556c;
+  --teal:#0f9d8a;
+  --bg:#eef3f7;
+  --surface:#ffffff;
+  --ink:#16293d;
+  --muted:#64748b;
+  --line:#dfe7ef;
+  --green:#0f766e;
+  --green-bg:#e6f7f4;
+  --amber:#b45309;
+  --amber-bg:#fef3c7;
+  --red:#be123c;
+  --red-bg:#ffe4e8;
+  --blue-bg:#e0f2fe;
+  --blue-ink:#0369a1;
+  --shadow:0 4px 18px rgba(11,31,51,.06);
+  --radius:13px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);font:14px/1.5 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+
+/* Login Portal */
+.login-screen{position:fixed;inset:0;z-index:80;background:radial-gradient(circle at 18% 20%,#164e63 0%,#0b1f33 58%,#071421 100%);display:none;align-items:center;justify-content:center;padding:20px}
+.login-screen.show{display:flex}
+.login-card{background:#fff;width:min(440px,100%);border-radius:18px;padding:28px;box-shadow:0 30px 70px rgba(0,0,0,.4)}
+.login-brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.login-card h2{margin:0 0 4px;font-size:20px;color:var(--navy)}
+.login-card p{margin:0 0 16px;font-size:12.5px;color:var(--muted)}
+.quick-accounts{display:flex;flex-direction:column;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.quick-btn{border:1px solid var(--line);background:#f8fbfd;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;text-align:left}
+.quick-btn:hover{border-color:var(--blue);background:#eef8fb}
+
+/* App Shell */
+.app{display:flex;min-height:100vh}
+.sidebar{width:262px;background:linear-gradient(180deg,#0b1f33 0%,#102b46 100%);color:#dce8f1;padding:20px 13px;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;transition:transform .2s ease}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 8px 18px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:12px}
+.logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,#38bdf8,#0d9488);color:#fff;display:grid;place-items:center;font-weight:900;font-size:18px;flex-shrink:0}
+.brand b{display:block;font-size:16px;letter-spacing:.5px;color:#fff}
+.brand small{color:#94b8cf;font-size:10px;letter-spacing:1.2px;display:block}
+.nav-label{font-size:10px;color:#7ca0b8;letter-spacing:1.4px;padding:8px 12px 5px;font-weight:700}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{width:100%;border:0;background:transparent;color:#c7d9e6;text-align:left;padding:9px 11px;border-radius:9px;display:flex;gap:10px;align-items:center;font-size:12.5px;font-weight:500;transition:all .15s}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav button.active{background:linear-gradient(90deg,#0d6e8a,#0f8b8d);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(13,110,138,.35)}
+.nav .ico{width:18px;text-align:center;flex-shrink:0}
+.nav .badge{margin-left:auto;background:rgba(255,255,255,.16);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px}
+.side-bottom{margin-top:auto;border-top:1px solid rgba(255,255,255,.1);padding:12px 6px 0;color:#94b0c4;font-size:11px;line-height:1.45}
+.side-actions{display:flex;gap:6px;margin-bottom:10px}
+.side-mini{flex:1;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#e2eef6;padding:6px 8px;border-radius:8px;font-size:11px;font-weight:600;text-align:center}
+.side-mini:hover{background:rgba(255,255,255,.15);color:#fff}
+.author-chip{margin-top:8px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.25);border-radius:9px;padding:7px 9px;color:#dff4fd;font-size:10.5px}
+.author-chip b{color:#fff;display:block;font-size:12px}
+
+/* Main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{height:64px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:10;gap:10px}
+.top-left{display:flex;align-items:center;gap:10px;min-width:0}
+.menu-btn{display:none;border:1px solid var(--line);background:#fff;border-radius:8px;width:36px;height:36px;align-items:center;justify-content:center;color:var(--ink)}
+.crumb{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumb strong{color:var(--navy)}
+.live-pill{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);color:var(--green);font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#10b981}
+.top-right{display:flex;align-items:center;gap:8px}
+.user-btn{display:flex;align-items:center;gap:9px;font-size:12px;border:1px solid var(--line);background:#fff;padding:4px 11px 4px 5px;border-radius:999px;text-align:left}
+.user-btn:hover{border-color:var(--blue);background:#f8fcfd}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0d6e8a,#0f9d8a);color:#fff;display:grid;place-items:center;font-weight:800;font-size:12px;flex-shrink:0}
+.user-meta b{display:block;font-size:12px;color:var(--navy);line-height:1.2}
+.user-meta span{font-size:10.5px;color:var(--muted)}
+
+.content{padding:22px 26px 48px;max-width:1480px;width:100%;margin:0 auto}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.eyebrow{font-size:10px;letter-spacing:1.4px;color:var(--blue);font-weight:800;text-transform:uppercase}
+.page-head h1{font-size:23px;margin:3px 0;color:var(--navy)}
+.sub{color:var(--muted);font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* Buttons */
+.btn{border:1px solid var(--line);background:#fff;color:#1e3a52;padding:8px 13px;border-radius:8px;font-weight:600;font-size:12px;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn:hover{background:#f8fafc;border-color:#cbd5e1}
+.btn.primary{background:linear-gradient(135deg,#0d6e8a,#0f8b8d);color:#fff;border-color:transparent}
+.btn.dark{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.danger{color:var(--red);border-color:#fecdd3;background:#fff}
+.btn.danger:hover{background:var(--red-bg)}
+.btn.sm{padding:5px 10px;font-size:11.5px;border-radius:7px}
+.linkbtn{border:0;background:none;color:var(--blue);font-weight:700;font-size:12px;padding:4px 6px;border-radius:6px}
+.linkbtn:hover{background:var(--blue-bg)}
+.linkbtn.danger{color:var(--red)}
+
+/* KPI & Panels */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat:after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d6e8a,#0f9d8a)}
+.stat-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;font-weight:600}
+.stat-icon{width:30px;height:30px;background:var(--blue-bg);border-radius:9px;display:grid;place-items:center;color:var(--blue)}
+.stat strong{display:block;font-size:25px;margin-top:7px;color:var(--navy)}
+.stat small{color:var(--muted);font-size:11px;display:block;margin-top:3px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}
+.panel-head h3{font-size:14px;margin:0;color:var(--navy)}
+.panel-head p{margin:2px 0 0;color:var(--muted);font-size:11.5px}
+.panel-body{padding:16px 18px}
+.chart-box{position:relative;height:220px;width:100%}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.grid2-eq{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.search,.filter-sel{border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:12px;background:#fff;color:var(--ink);outline:none}
+.search{min-width:190px}
+
+/* Stepper & Checklist (CP1 - CP3) */
+.stepper{display:flex;gap:10px;margin:0 0 14px}
+.step{flex:1;display:flex;gap:10px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fff}
+.step i{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;background:#eef3f6;color:#536a7d;flex-shrink:0}
+.step b{display:block;font-size:12.5px;color:var(--navy)}
+.step small{color:var(--muted);font-size:11px}
+.step.cur{border-color:var(--blue);background:#f5fbfd}
+.step.cur i{background:var(--blue);color:#fff}
+.step.done{border-color:#a7f3d0;background:#f0fdf9}
+.step.done i{background:var(--green);color:#fff}
+.ckrow{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #edf2f7;font-size:13px}
+.ckrow:last-child{border:0}
+.ckrow input[type="checkbox"]{width:16px;height:16px;accent-color:var(--blue)}
+
+/* Tables */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;color:#64748b;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;background:#f8fbfd;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid #edf2f7;font-size:12.5px;vertical-align:top}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#f8fcfd}
+.shipname{font-weight:700;color:var(--navy)}
+.muted{color:var(--muted)}
+.nowrap{white-space:nowrap}
+
+/* Pills & Notices */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:#eef3f6;color:#475569;white-space:nowrap}
+.pill.green{background:var(--green-bg);color:var(--green)}
+.pill.amber{background:var(--amber-bg);color:var(--amber)}
+.pill.red{background:var(--red-bg);color:var(--red)}
+.pill.blue{background:var(--blue-bg);color:var(--blue-ink)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.notice{background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:11px 14px;color:#0c4a6e;font-size:12px;margin-bottom:14px}
+.notice.warn{background:#fff7ed;border-color:#fde68a;color:#92400e}
+.notice.err{background:#ffe4e8;border-color:#fecdd3;color:#9f1239}
+
+/* Vessel Banner & Tabs */
+.vessel-banner{background:linear-gradient(115deg,#0b1f33 0%,#0d6e8a 70%,#0f9d8a 100%);color:#fff;border-radius:14px;padding:20px 22px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.vessel-banner h2{font-size:21px;margin:2px 0}
+.vessel-banner p{margin:0;color:#d0ecf4;font-size:12.5px}
+.vessel-meta{display:flex;gap:20px;flex-wrap:wrap;margin-top:12px}
+.vessel-meta span{font-size:11.5px;color:#cce6ee}
+.vessel-meta b{color:#fff;margin-left:4px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;padding:0 16px;border-bottom:1px solid var(--line);background:#f8fbfd}
+.tabs button{border:0;background:none;padding:11px 13px;color:var(--muted);font-size:12.5px;font-weight:600;border-bottom:2px solid transparent}
+.tabs button.active{color:var(--blue);border-color:var(--blue);font-weight:700}
+
+/* Timeline & Photos */
+.timeline{position:relative;padding-left:22px}
+.timeline:before{content:"";position:absolute;left:6px;top:6px;bottom:8px;width:2px;background:#dbe7ee}
+.event{position:relative;padding:0 0 16px 12px}
+.event:before{content:"";position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid #dff3f7}
+.event b{font-size:13px;color:var(--navy)}
+.event small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.event p{font-size:12px;margin:4px 0 0;color:#475569}
+.photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.photo{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.photo-art{height:135px;background:linear-gradient(135deg,#dcebf0,#f1f5f9);display:grid;place-items:center;font-size:32px;color:#6390a1;cursor:pointer;overflow:hidden}
+.photo-art img{width:100%;height:100%;object-fit:cover}
+.photo-info{padding:10px}
+.photo-info b{font-size:12px;color:var(--navy);display:block}
+.photo-info small{display:block;color:var(--muted);font-size:10.5px;margin-top:2px}
+
+/* Forms & Modals */
+.field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-size:11.5px;font-weight:700;color:#475569}
+.field input,.field select,.field textarea{width:100%;border:1px solid #d5e0e8;border-radius:8px;padding:9px 11px;background:#fff;color:var(--ink);outline:none;font-size:13px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px #e0f2fe}
+.field textarea{min-height:78px;resize:vertical}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.modal-back{position:fixed;inset:0;background:rgba(10,25,40,.52);display:none;align-items:center;justify-content:center;padding:16px;z-index:50;backdrop-filter:blur(2px)}
+.modal-back.show{display:flex}
+.modal{background:#fff;width:min(740px,100%);max-height:92vh;overflow:auto;border-radius:14px;box-shadow:0 24px 60px rgba(10,25,40,.3)}
+.modal-head{padding:15px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:2}
+.modal-head h3{margin:0;font-size:15px;color:var(--navy)}
+.close{border:0;background:#f1f5f9;border-radius:8px;width:30px;height:30px;font-weight:700}
+.modal-content{padding:18px 20px}
+.empty{padding:32px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:#334155;margin-bottom:4px}
+.toast-wrap{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:90}
+.toast{background:var(--navy);color:#fff;padding:10px 15px;border-radius:10px;font-size:12.5px;font-weight:600;box-shadow:0 10px 28px rgba(11,31,51,.3)}
+.drawer-bg{display:none;position:fixed;inset:0;background:rgba(10,25,40,.45);z-index:25}
+.drawer-bg.show{display:block}
+.sof-sign{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px;text-align:center;font-size:12px}
+.sof-sign .sig-box{border-top:1px dashed #94a3b8;margin-top:44px;padding-top:6px;font-weight:700;color:var(--navy)}
+
+@media print{
+  .app,.toast-wrap,.login-screen{display:none!important}
+  .modal-back{position:static;display:block;background:none;padding:0}
+  .modal{box-shadow:none;max-height:none;width:100%}
+  .form-actions,.close,.modal-head{display:none!important}
+}
+@media(max-width:1050px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .grid2,.grid2-eq{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:30;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .menu-btn{display:inline-flex}
+  .topbar{padding:0 14px}
+  .content{padding:16px 14px 40px}
+  .stepper{flex-direction:column}
+  .field-grid{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  .photo-grid{grid-template-columns:repeat(2,1fr)}
+  .user-meta,.live-pill{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="logo">S</div>
+      <div><b style="font-size:17px;color:var(--navy);display:block">SGCL MARITIME OPS</b><small style="font-size:11px;color:var(--muted)">Saigon Cuulong JSC · Vessel Agency Portal</small></div>
+    </div>
+    <h2>Đăng nhập hệ thống</h2>
+    <p>Chọn tài khoản nhân sự để quản lý hồ sơ tàu, kiểm soát CP1–CP3, đối chiếu B/L–ROROC và xuất SOF.</p>
+    <form id="loginForm">
+      <div class="field" style="margin-bottom:10px"><label>Email</label><input id="loginEmail" type="email" required value="ngoc.tnb@sgcl.vn"></div>
+      <div class="field" style="margin-bottom:14px"><label>Mật khẩu</label><input id="loginPass" type="password" required value="sgcl2026"></div>
+      <button type="submit" class="btn primary" style="width:100%;justify-content:center;padding:10px">Đăng nhập</button>
+    </form>
+    <div class="quick-accounts">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Đăng nhập nhanh</div>
+      <button class="quick-btn" data-quick-login="u1"><div><b style="color:var(--navy)">Trương Nguyễn Bảo Ngọc</b><div style="font-size:11px;color:var(--blue);font-weight:600">Agency Operations Lead</div></div><span class="pill blue">Chọn →</span></button>
+      <button class="quick-btn" data-quick-login="u2"><div><b style="color:var(--navy)">Trần Thị Lan</b><div style="font-size:11px;color:var(--muted)">Ops Coordinator</div></div><span class="pill">Chọn →</span></button>
+      <button class="quick-btn" data-quick-login="u3"><div><b style="color:var(--navy)">Lê Hoàng Nam</b><div style="font-size:11px;color:var(--muted)">Agency Manager</div></div><span class="pill">Chọn →</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="drawer-bg" id="drawerBg"></div>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="logo">S</div><div><b>SGCL</b><small>VESSEL AGENCY</small></div></div>
+    <div class="nav-label">NGHIỆP VỤ ĐẠI LÝ</div>
+    <nav class="nav" id="mainNav">
+      <button class="active" data-page="dashboard"><span class="ico">▦</span><span>Tổng quan</span></button>
+      <button data-page="vessels"><span class="ico">⚓</span><span>Quản lý tàu</span><span class="badge" id="ncVessels">0</span></button>
+      <button data-page="checklist"><span class="ico">☑</span><span>Checklist CP1–CP3</span></button>
+      <button data-page="journal"><span class="ico">◷</span><span>Nhật ký hiện trường</span><span class="badge" id="ncLogs">0</span></button>
+      <button data-page="daily"><span class="ico">✎</span><span>Daily report</span><span class="badge" id="ncDaily">0</span></button>
+      <button data-page="recon"><span class="ico">⚖</span><span>Đối chiếu số liệu</span></button>
+      <button data-page="sof"><span class="ico">☷</span><span>Dòng thời gian SOF</span><span class="badge" id="ncEvents">0</span></button>
+      <button data-page="photos"><span class="ico">▧</span><span>Hình ảnh hiện trường</span><span class="badge" id="ncPhotos">0</span></button>
+      <button data-page="reports"><span class="ico">▤</span><span>Báo cáo &amp; chứng từ</span><span class="badge" id="ncDocs">0</span></button>
+      <button data-page="handover"><span class="ico">⇄</span><span>Bàn giao ca trực</span><span class="badge" id="ncHandovers">0</span></button>
+    </nav>
+    <div class="side-bottom">
+      <div class="side-actions">
+        <button class="side-mini" id="btnBackupJson">↓ Sao lưu</button>
+        <button class="side-mini" id="btnRestoreJson">↑ Khôi phục</button>
+      </div>
+      <input type="file" id="restoreInput" accept="application/json" style="display:none">
+      <b>SAIGON CUULONG JSC</b>
+      <div class="author-chip">
+        <span>Thực hiện &amp; Phụ trách:</span>
+        <b>Trương Nguyễn Bảo Ngọc</b>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="menu-btn" id="menuToggle" aria-label="Mở menu">☰</button>
+        <div class="crumb">SGCL <span class="muted">/</span> <strong id="crumb">Tổng quan</strong></div>
+        <span class="live-pill"><span class="live-dot"></span>Trực tuyến</span>
+      </div>
+      <div class="top-right">
+        <button class="btn sm" id="btnTopSof">⎙ Xuất SOF</button>
+        <button class="btn sm" id="btnTopCsv">↓ CSV</button>
+        <button class="user-btn" id="btnOpenLogin" title="Chuyển tài khoản / Đăng nhập">
+          <div class="avatar" id="userAvatar">BN</div>
+          <div class="user-meta"><b id="userName">Trương Nguyễn Bảo Ngọc</b><span id="userRole">Agency Operations Lead</span></div>
+        </button>
+      </div>
+    </header>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<div class="modal-back" id="modal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modalTitle">Thông tin</h3><button class="close" id="modalCloseBtn">✕</button></div>
+    <div class="modal-content" id="modalContent"></div>
+  </div>
+</div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const load = (k, d) => { try { const v = localStorage.getItem('sgcl_v4_' + k); return v !== null ? JSON.parse(v) : d; } catch { return d; } };
+const save = (k, v) => { try { localStorage.setItem('sgcl_v4_' + k, JSON.stringify(v)); } catch {} };
+
+const USERS = [
+  { id: 'u1', name: 'Trương Nguyễn Bảo Ngọc', email: 'ngoc.tnb@sgcl.vn', role: 'Agency Operations Lead', initials: 'BN' },
+  { id: 'u2', name: 'Trần Thị Lan', email: 'lan.tt@sgcl.vn', role: 'Ops Coordinator', initials: 'TL' },
+  { id: 'u3', name: 'Lê Hoàng Nam', email: 'nam.lh@sgcl.vn', role: 'Agency Manager', initials: 'HN' }
+];
+
+const REQ = {
+  1: ['Arrival Notice', 'Crew List', 'Bill of Lading (B/L)', 'Notice of Readiness (NOR)'],
+  3: ['ROROC', 'Draft Survey cuối', 'COR', 'Port Clearance']
+};
+const CKS = {
+  1: ['Đã xác nhận NOR', 'Thông tin tàu, hàng hóa, người nhận hàng đầy đủ', 'Mốc thời gian ban đầu có nguồn xác nhận', 'Đã tải đủ chứng từ đầu vào'],
+  2: ['Sản lượng từng ca/ngày đã nhập', 'Gián đoạn có thời gian, nguyên nhân, hình ảnh', 'Các ca đã xác nhận bàn giao'],
+  3: ['Đã tải đủ chứng từ hoàn công', 'Đã rà soát SOF với chứng từ', 'Đã xuất SOF & báo cáo tổng hợp']
+};
+const SN = ['', 'Chuẩn bị', 'Giám sát dỡ hàng', 'Hoàn tất hồ sơ'];
+const SHIFTS = ['Ca 1 (06–14)', 'Ca 2 (14–22)', 'Ca 3 (22–06)', 'Cả ngày'];
+const SEQ = ['Tàu đến', 'NOR', 'Bắt đầu làm hàng', 'Hoàn tất làm hàng', 'Tàu rời'];
+
+let vessels = load('vessels', [
+  {
+    id: 1, name: 'MV New Hope', voyage: '24-10', cargo: 'Gỗ tròn', type: 'Nhập khẩu',
+    port: 'Cảng Khánh Hội', berth: 'Cầu K2', eta: '2026-11-22T06:00', status: 'Đang theo dõi',
+    agent: 'Trương Nguyễn Bảo Ngọc', note: 'Hồ sơ chuyến tàu mẫu chuẩn quy trình CP1–CP3.', phase: 2,
+    recon: { unit: 'MT', tol: 0.5, bl: 12500, ds: 12480, roroc: 12465 }
+  }
+]);
+let cks = load('cks', { '1_1_0': true, '1_1_1': true, '1_1_2': true, '1_1_3': true });
+let logs = load('logs', [
+  { id: 101, vesselId: 1, time: '2026-11-22T08:30', shift: 'Ca 1 (06–14)', qty: '3200 MT', type: 'Diễn biến dỡ hàng (ghi nhận)', title: 'Dỡ hàng ca 1 thuận lợi tại hầm 1 & 2', person: 'Trương Nguyễn Bảo Ngọc', detail: '2 cẩu bờ hoạt động liên tục, thời tiết khô ráo.' },
+  { id: 102, vesselId: 1, time: '2026-11-22T15:15', shift: 'Ca 2 (14–22)', qty: '2850 MT', type: 'Diễn biến dỡ hàng (ghi nhận)', title: 'Tiếp tục dỡ gỗ tròn ca 2', person: 'Trương Nguyễn Bảo Ngọc', detail: 'Chú ý gió tăng nhẹ cuối ca.' }
+]);
+let daily = load('daily', [
+  { id: 201, vesselId: 1, date: '2026-11-22', person: 'Trương Nguyễn Bảo Ngọc', from: '06:00', to: '14:00', content: 'Hoàn tất thủ tục nhập cảnh và mở nắp hầm 1 & 2. Sản lượng ca 1 đạt 3.200 MT, không phát sinh gián đoạn.', imgs: [] }
+]);
+let events = load('events', [
+  { id: 301, vesselId: 1, time: '2026-11-22T05:30', type: 'Tàu đến / Arrival', title: 'Tàu đến trạm hoa tiêu (EOSP)', person: 'Trương Nguyễn Bảo Ngọc', source: 'VHF / Thuyền trưởng', cause: '', detail: 'Tàu thả neo chờ hoa tiêu đúng kế hoạch.' },
+  { id: 302, vesselId: 1, time: '2026-11-22T06:00', type: 'NOR / Notice of Readiness', title: 'Trao Thông báo sẵn sàng (NOR Tendered)', person: 'Trương Nguyễn Bảo Ngọc', source: 'Email NOR xác nhận', cause: '', detail: 'Đã gửi đại diện chủ hàng.' },
+  { id: 303, vesselId: 1, time: '2026-11-22T08:00', type: 'Bắt đầu làm hàng', title: 'Bắt đầu dỡ hàng hầm 1 & 2', person: 'Trương Nguyễn Bảo Ngọc', source: 'Biên bản cảng Khánh Hội', cause: '', detail: 'Sau khi giám định mớn nước đầu.' }
+]);
+let photos = load('photos', []);
+let docs = load('docs', [
+  { id: 401, vesselId: 1, name: 'Arrival Notice', type: 'Arrival Notice', date: '2026-11-21', status: 'Đã tải lên', note: 'AN_MV_New_Hope.pdf' },
+  { id: 402, vesselId: 1, name: 'Crew List', type: 'Crew List', date: '2026-11-21', status: 'Đã tải lên', note: 'CrewList_24-10.pdf' },
+  { id: 403, vesselId: 1, name: 'Bill of Lading (B/L)', type: 'Bill of Lading (B/L)', date: '2026-11-21', status: 'Đã tải lên', note: 'BL_12500MT.pdf' },
+  { id: 404, vesselId: 1, name: 'Notice of Readiness (NOR)', type: 'Notice of Readiness (NOR)', date: '2026-11-22', status: 'Đã tải lên', note: 'NOR_Signed.pdf' }
+]);
+let handovers = load('handovers', [
+  { id: 501, vesselId: 1, date: '2026-11-22', shift: 'Ca 1 (06–14)', from: 'Trương Nguyễn Bảo Ngọc', to: 'Trần Thị Lan', detail: 'Sản lượng ca 1 đạt 3.200 MT, bàn giao tiếp tục theo dõi ca 2.', time: '2026-11-22T14:05' }
+]);
+let currentUser = load('currentUser', USERS[0]);
+let activeVessel = load('activeVessel', vessels[0]?.id || null);
+let page = 'dashboard', subtab = '';
+let chartCargo = null, chartOps = null;
+
+let persist = function() {
+  save('vessels', vessels); save('cks', cks); save('logs', logs); save('daily', daily);
+  save('events', events); save('photos', photos); save('docs', docs); save('handovers', handovers);
+  save('currentUser', currentUser); save('activeVessel', activeVessel);
+  updateBadges();
+};
+
+const toast = msg => { const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg; $('#toastWrap').appendChild(el); setTimeout(() => el.remove(), 2600); };
+const vessel = id => vessels.find(v => String(v.id) === String(id));
+const dateNow = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+const fmt = n => (+n).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+const RC = v => ({ tol: 0.5, unit: 'MT', ...(v.recon || {}) });
+const phase = v => v.phase || 1;
+const ckOn = (v, p, i) => !!cks[v.id + '_' + p + '_' + i];
+const ckDone = (v, p) => CKS[p].every((_, i) => ckOn(v, p, i));
+const hasDoc = (v, n) => docs.some(d => d.vesselId == v.id && d.name === n);
+const missing = (v, p) => (REQ[p] || []).filter(n => !hasDoc(v, n));
+const statusPill = s => `<span class="pill ${s === 'Đang theo dõi' ? 'green' : s === 'Đã hoàn tất' ? 'blue' : 'amber'}"><i class="dot"></i>${esc(s || 'Chưa cập nhật')}</span>`;
+
+const pageNames = {
+  dashboard: 'Tổng quan', vessels: 'Quản lý tàu', checklist: 'Checklist CP1–CP3',
+  journal: 'Nhật ký hiện trường', daily: 'Daily report', recon: 'Đối chiếu số liệu',
+  sof: 'Dòng thời gian SOF', photos: 'Hình ảnh hiện trường', reports: 'Báo cáo & chứng từ', handover: 'Bàn giao ca trực'
+};
+
+function updateBadges() {
+  $('#ncVessels').textContent = vessels.length;
+  $('#ncLogs').textContent = logs.length;
+  $('#ncDaily').textContent = daily.length;
+  $('#ncEvents').textContent = events.length;
+  $('#ncPhotos').textContent = photos.length;
+  $('#ncDocs').textContent = docs.length;
+  $('#ncHandovers').textContent = handovers.length;
+  $('#userAvatar').textContent = currentUser.initials;
+  $('#userName').textContent = currentUser.name;
+  $('#userRole').textContent = currentUser.role;
+}
+
+function closeDrawer() { $('#sidebar').classList.remove('open'); $('#drawerBg').classList.remove('show'); }
+function go(p) {
+  page = p; subtab = '';
+  document.querySelectorAll('#mainNav button').forEach(b => b.classList.toggle('active', b.dataset.page === p));
+  $('#crumb').textContent = pageNames[p] || 'Tổng quan';
+  closeDrawer(); render();
+}
+
+function head(title, sub, actions = '') { return `<div class="page-head"><div><div class="eyebrow">SAIGON CUULONG · AGENCY OPERATIONS</div><h1>${title}</h1><div class="sub">${sub}</div></div><div class="actions">${actions}</div></div>`; }
+function btn(label, fn, cls = '') { return `<button class="btn ${cls}" onclick="${fn}">${label}</button>`; }
+function vesselSelect(id = 'vesselId') { return `<select id="${id}" required>${vessels.map(v => `<option value="${v.id}" ${String(v.id) === String(activeVessel) ? 'selected' : ''}>${esc(v.name)} · ${esc(v.voyage || 'Chưa có số chuyến')}</option>`).join('')}</select>`; }
+const vsel = () => `<div class="actions" style="margin-bottom:14px"><select class="filter-sel" onchange="activeVessel=Number(this.value);persist();render()">${vessels.map(v => `<option value="${v.id}" ${v.id == activeVessel ? 'selected' : ''}>${esc(v.name)} · ${esc(v.voyage || '')}</option>`).join('')}</select></div>`;
+
+// ---- BUSINESS LOGIC (CP1-CP3, HANDOVER, RECON, SOF TIME CHECK) ----
+function timeErrors(v) {
+  const t = {};
+  events.filter(e => e.vesselId == v.id).forEach(e => {
+    const i = SEQ.findIndex(s => e.type && e.type.startsWith(s));
+    if (i >= 0 && (!t[i] || e.time < t[i])) t[i] = e.time;
+  });
+  const k = Object.keys(t).map(Number).sort((a, b) => a - b), o = [];
+  for (let x = 0; x < k.length; x++)
+    for (let y = x + 1; y < k.length; y++)
+      if (t[k[y]] < t[k[x]]) o.push(`Mốc "${SEQ[k[y]]}" (${t[k[y]].replace('T', ' ')}) sớm hơn "${SEQ[k[x]]}" (${t[k[x]].replace('T', ' ')})`);
+  return o;
+}
+
+function reconRows(v) {
+  const r = RC(v), S = [['B/L', r.bl], ['Draft Survey', r.ds], ['ROROC', r.roroc]];
+  return [[0, 1], [0, 2], [1, 2]].map(([i, j]) => {
+    const a = +S[i][1], b = +S[j][1], ok = a > 0 && b > 0, d = b - a, p = ok ? d / a * 100 : 0;
+    return { label: S[i][0] + ' – ' + S[j][0], a: ok ? a : null, b: ok ? b : null, d, p, unit: r.unit, tol: r.tol, st: !ok ? 'na' : Math.abs(p) <= r.tol ? 'ok' : 'over' };
+  });
+}
+
+const qtyOf = (l, u) => { const [q, x] = String(l.qty || '').split(' '); return q && +q >= 0 && x === u ? +q : null; };
+function cumMap() {
+  const m = {};
+  vessels.forEach(v => {
+    const r = RC(v); let s = 0;
+    logs.filter(l => l.vesselId == v.id).sort((a, b) => a.time.localeCompare(b.time)).forEach(l => {
+      const q = qtyOf(l, r.unit);
+      if (q === null) { m[l.id] = '—'; return; }
+      s += q;
+      m[l.id] = fmt(s) + (r.bl > 0 ? ' (' + fmt(s / r.bl * 100) + '%)' : '');
+    });
+  });
+  return m;
+}
+const cumTotal = v => logs.filter(l => l.vesselId == v.id).reduce((s, l) => s + (qtyOf(l, RC(v).unit) || 0), 0);
+
+function pendingHO() {
+  const done = new Set(handovers.map(h => h.vesselId + '|' + h.date + '|' + h.shift)), m = {};
+  logs.filter(l => l.shift).forEach(l => {
+    const d = l.time.slice(0, 10), k = l.vesselId + '|' + d + '|' + l.shift;
+    if (!done.has(k)) m[k] = { vesselId: l.vesselId, date: d, shift: l.shift, person: l.person };
+  });
+  return Object.values(m);
+}
+
+const warnBox = vid => {
+  const p = pendingHO().filter(x => !vid || x.vesselId == vid);
+  return p.length ? `<div class="notice warn"><b>Chưa xác nhận bàn giao ca:</b> ${p.map(x => `${esc(vessel(x.vesselId)?.name || '')} · ${x.date} · ${esc(x.shift)} (NV trực: ${esc(x.person)})`).join(' | ')}</div>` : '';
+};
+
+const alertsBox = vid => {
+  const a = [];
+  vessels.filter(v => !vid || v.id == vid).forEach(v => {
+    reconRows(v).filter(x => x.st === 'over').forEach(x => a.push(`${v.name}: ${x.label} chênh ${x.p.toFixed(2)}% (vượt ngưỡng ${x.tol}%)`));
+    timeErrors(v).forEach(x => a.push(`${v.name}: ${x}`));
+  });
+  return a.length ? `<div class="notice err"><b>Cảnh báo nghiệp vụ:</b> ${a.map(esc).join(' | ')}</div>` : '';
+};
+
+function warn(title, items) {
+  openModal(title, `<div class="notice err">Chưa thể thực hiện. Vui lòng hoàn tất các mục sau:</div><ul style="padding-left:18px;margin:0;line-height:1.8">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`);
+}
+
+function can(v, need) {
+  if (!v) return false;
+  if (v.locked) { warn('Hồ sơ đã khóa', ['Hồ sơ chuyến tàu đã được khóa và lưu trữ, không thể thêm hoặc sửa dữ liệu.']); return false; }
+  if (need > phase(v)) {
+    const e = [];
+    CKS[1].forEach((t, i) => { if (!ckOn(v, 1, i)) e.push('Checklist CP1: ' + t); });
+    missing(v, 1).forEach(n => e.push('Thiếu chứng từ: ' + n));
+    warn('Chưa hoàn tất điểm kiểm soát CP1', e.length ? e : ['Hãy chuyển hồ sơ sang Giai đoạn 2 trước khi nhập số liệu dỡ hàng.']);
+    return false;
+  }
+  return true;
+}
+
+function gate(v, p) {
+  const e = [];
+  CKS[p].forEach((t, i) => { if (!ckOn(v, p, i)) e.push('Checklist CP' + p + ': ' + t); });
+  missing(v, p).forEach(n => e.push('Thiếu chứng từ: ' + n));
+  if (p === 1) timeErrors(v).forEach(x => e.push('Sai logic mốc thời gian: ' + x));
+  if (p === 2) pendingHO().filter(x => x.vesselId == v.id).forEach(x => e.push(`Chưa xác nhận bàn giao ca: ${x.date} · ${x.shift} (${x.person})`));
+  if (e.length) { warn('Chưa hoàn tất điểm kiểm soát CP' + p, e); return false; }
+  return true;
+}
+
+window.advance = id => { const v = vessel(id); if (!gate(v, phase(v))) return; v.phase = phase(v) + 1; persist(); render(); toast('Đã chuyển sang Giai đoạn ' + v.phase); };
+window.lockRec = id => { const v = vessel(id); if (!gate(v, 3)) return; v.locked = true; v.status = 'Đã hoàn tất'; persist(); render(); toast('Đã khóa & lưu trữ hồ sơ tàu'); };
+window.tick = (k, c) => { cks[k] = c; persist(); render(); };
+
+const stepper = v => {
+  const p = phase(v);
+  return `<div class="stepper">${[1, 2, 3].map(i => {
+    const d = v.locked || i < p;
+    return `<div class="step ${d ? 'done' : i === p ? 'cur' : ''}"><i>${d ? '✓' : i}</i><div><b>Giai đoạn ${i}</b><small>${SN[i]} · CP${i}</small></div></div>`;
+  }).join('')}</div>
+  <div class="actions" style="margin:0 0 16px">
+    ${v.locked ? '<span class="pill blue">🔒 Hồ sơ đã khóa &amp; lưu trữ</span>' : p < 3 ? btn('Hoàn tất CP' + p + ' → Giai đoạn ' + (p + 1), `advance(${v.id})`, 'primary') : btn('Khóa & lưu trữ hồ sơ', `lockRec(${v.id})`, 'dark')}
+    ${btn('Mở checklist CP1–CP3', `activeVessel=${v.id};go('checklist')`)}
+    ${btn('Xuất SOF', `activeVessel=${v.id};exportSOF()`)}
+  </div>`;
+};
+
+const progBox = () => {
+  const v = vessel(activeVessel); if (!v) return '';
+  const r = RC(v), t = cumTotal(v), p = r.bl > 0 ? Math.min(100, t / r.bl * 100) : 0;
+  return vsel() + `<section class="panel"><div class="panel-body"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12.5px;margin-bottom:8px"><b>${esc(v.name)} · Tiến độ dỡ hàng theo B/L</b><span>${fmt(t)} ${r.unit}${r.bl > 0 ? ' / ' + fmt(r.bl) + ' ' + r.unit + ' (' + fmt(t / r.bl * 100) + '%)' : ' · chưa nhập số liệu B/L'}</span></div><div style="height:10px;background:#e2e8f0;border-radius:999px;overflow:hidden"><div style="height:100%;width:${p}%;background:linear-gradient(90deg,#0d6e8a,#10b981)"></div></div></div></section>`;
+};
+
+// ---- PAGES ----
+function dashboard() {
+  const active = vessels.filter(v => v.status === 'Đang theo dõi').length;
+  return head('Tổng quan hoạt động', `Xin chào ${esc(currentUser.name)} — Theo dõi tiến độ dỡ hàng, điểm kiểm soát CP1–CP3 và đối chiếu số liệu.`, btn('+ Thêm tàu', 'openVessel()', 'primary') + btn('+ Nhật ký ca', 'openLog()') + btn('Xuất SOF', 'exportSOF()')) +
+    warnBox() + alertsBox() + `
+    <div class="stats">
+      <div class="stat"><div class="stat-top">Tàu trong hệ thống <span class="stat-icon">⚓</span></div><strong>${vessels.length}</strong><small>${active} tàu đang theo dõi</small></div>
+      <div class="stat"><div class="stat-top">Nhật ký &amp; Daily <span class="stat-icon">◷</span></div><strong>${logs.length + daily.length}</strong><small>${logs.length} nhật ký · ${daily.length} daily report</small></div>
+      <div class="stat"><div class="stat-top">Mốc sự kiện SOF <span class="stat-icon">☷</span></div><strong>${events.length}</strong><small>Đã ghi nhận có nguồn xác nhận</small></div>
+      <div class="stat"><div class="stat-top">Ca chờ bàn giao <span class="stat-icon">⇄</span></div><strong>${pendingHO().length}</strong><small>${handovers.length} ca đã xác nhận bàn giao</small></div>
+    </div>
+    <div class="grid2-eq">
+      <section class="panel"><div class="panel-head"><div><h3>Tiến độ dỡ hàng theo B/L</h3><p>Lũy kế sản lượng đã dỡ so với khối lượng B/L</p></div></div><div class="panel-body"><div class="chart-box"><canvas id="chartCargo"></canvas></div></div></section>
+      <section class="panel"><div class="panel-head"><div><h3>Phân bổ hồ sơ nghiệp vụ</h3><p>Tổng hợp bản ghi theo từng phân hệ</p></div></div><div class="panel-body"><div class="chart-box"><canvas id="chartOps"></canvas></div></div></section>
+    </div>
+    <div class="grid2">
+      <section class="panel"><div class="panel-head"><div><h3>Danh sách tàu</h3><p>Các hồ sơ tàu đang theo dõi theo quy trình CP1–CP3</p></div><button class="linkbtn" onclick="go('vessels')">Xem tất cả →</button></div>${vesselTable(vessels.slice(0, 5), true)}</section>
+      <section class="panel"><div class="panel-head"><div><h3>Cập nhật hiện trường gần đây</h3><p>Nhật ký mới nhất từ nhân sự trực ca</p></div><button class="linkbtn" onclick="go('journal')">Mở nhật ký →</button></div><div class="panel-body">${logs.length ? `<div class="timeline">${[...logs].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 4).map(l => `<div class="event"><b>${esc(l.title)} ${l.qty ? `<span class="pill blue">${esc(l.qty)}</span>` : ''}</b><small>${esc(vessel(l.vesselId)?.name || '—')} · ${esc(l.time.replace('T', ' '))} · ${esc(l.person)}</small><p>${esc(l.detail || '—')}</p></div>`).join('')}</div>` : `<div class="empty"><b>Chưa có cập nhật</b></div>`}</div></section>
+    </div>
+    <div class="notice">Lưu ý nghiệp vụ: Hệ thống phục vụ ghi nhận, tổng hợp, đối chiếu và kiểm soát CP1–CP3 trong quá trình cung cấp dịch vụ đại lý tàu biển; không thay thế vai trò điều hành bốc dỡ của cảng.</div>`;
+}
+
+function renderCharts() {
+  if (chartCargo) { chartCargo.destroy(); chartCargo = null; }
+  if (chartOps) { chartOps.destroy(); chartOps = null; }
+  if (typeof Chart === 'undefined') return;
+  const c1 = document.getElementById('chartCargo');
+  if (c1 && vessels.length) {
+    chartCargo = new Chart(c1, {
+      type: 'bar',
+      data: {
+        labels: vessels.map(v => v.name),
+        datasets: [
+          { label: 'Đã dỡ (lũy kế)', data: vessels.map(v => cumTotal(v)), backgroundColor: '#0d6e8a', borderRadius: 6 },
+          { label: 'Còn lại theo B/L', data: vessels.map(v => Math.max(0, (RC(v).bl || 0) - cumTotal(v))), backgroundColor: '#cbd5e1', borderRadius: 6 }
+        ]
+      },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, grid: { display: false } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+    });
+  }
+  const c2 = document.getElementById('chartOps');
+  if (c2) {
+    chartOps = new Chart(c2, {
+      type: 'doughnut',
+      data: {
+        labels: ['Nhật ký ca', 'Mốc SOF', 'Daily Report', 'Chứng từ', 'Bàn giao ca'],
+        datasets: [{ data: [logs.length, events.length, daily.length, docs.length, handovers.length], backgroundColor: ['#0d6e8a', '#0f9d8a', '#f59e0b', '#3b82f6', '#6366f1'], borderWidth: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right', labels: { boxWidth: 11, font: { size: 11.5 } } } } }
+    });
+  }
+}
+
+function vesselTable(arr, compact = false) {
+  if (compact) {
+    return `<div class="table-wrap"><table><thead><tr><th>Tàu / Chuyến</th><th>Giai đoạn</th><th>Trạng thái</th><th style="text-align:right"></th></tr></thead><tbody>${arr.length ? arr.map(v => `<tr><td><span class="shipname">${esc(v.name)}</span><br><span class="muted">${esc(v.voyage || '—')} · ${esc(v.port || '—')}</span></td><td><span class="pill blue">CP${phase(v)} · ${SN[phase(v)]}</span></td><td>${statusPill(v.status)}</td><td style="text-align:right"><button class="linkbtn" onclick="selectVessel(${v.id})">Mở →</button></td></tr>`).join('') : `<tr><td colspan="4" class="empty">Chưa có hồ sơ tàu.</td></tr>`}</tbody></table></div>`;
+  }
+  return `<div class="table-wrap"><table><thead><tr><th>Tên tàu / chuyến</th><th>Loại hàng</th><th>Cảng / địa điểm</th><th>Giai đoạn</th><th>Trạng thái</th><th style="text-align:right">Thao tác</th></tr></thead><tbody>${arr.length ? arr.map(v => `<tr><td><span class="shipname">${esc(v.name)}</span><br><span class="muted">${esc(v.voyage || '—')}</span></td><td>${esc(v.cargo || '—')}</td><td>${esc(v.port || '—')}</td><td><span class="pill blue">GĐ ${phase(v)} · ${SN[phase(v)]}</span></td><td>${statusPill(v.status)}</td><td style="text-align:right"><button class="linkbtn" onclick="selectVessel(${v.id})">Mở hồ sơ</button> <button class="linkbtn" onclick="openVessel(${v.id})">Sửa</button></td></tr>`).join('') : `<tr><td colspan="6" class="empty">Chưa có hồ sơ tàu.</td></tr>`}</tbody></table></div>`;
+}
+
+function vesselsPage() {
+  return head('Quản lý tàu', 'Mỗi tàu có hồ sơ riêng liên kết CP1–CP3, nhật ký, đối chiếu B/L–ROROC và chứng từ.', btn('+ Tạo hồ sơ tàu', 'openVessel()', 'primary')) +
+    `<section class="panel"><div class="panel-head"><div><h3>Danh sách hồ sơ tàu</h3><p>Thông tin chuyến tàu và tiến độ giai đoạn</p></div><input class="search" placeholder="Tìm tên tàu, chuyến..." oninput="filterVessels(this.value)"></div><div id="vesselTable">${vesselTable(vessels)}</div></section>`;
+}
+window.filterVessels = q => { $('#vesselTable').innerHTML = vesselTable(vessels.filter(v => (v.name + ' ' + v.voyage + ' ' + v.cargo).toLowerCase().includes(q.toLowerCase()))); };
+window.selectVessel = id => { activeVessel = id; persist(); page = 'vessels'; subtab = 'detail'; renderVesselDetail(); };
+window.renderVesselList = () => { subtab = ''; render(); };
+
+function renderVesselDetail() {
+  const v = vessel(activeVessel); if (!v) { subtab = ''; render(); return; }
+  $('#content').innerHTML = head('Hồ sơ tàu', `Quản lý thông tin và quy trình kiểm soát cho ${esc(v.name)}.`, btn('← Danh sách tàu', 'renderVesselList()') + btn('Chỉnh sửa hồ sơ', 'openVessel(' + v.id + ')', 'primary')) + `
+  <div class="vessel-banner"><div><div class="eyebrow" style="color:#a5f3fc">VESSEL PROFILE</div><h2>${esc(v.name)}</h2><p>${esc(v.voyage || '—')} · ${esc(v.type || '')} · Phụ trách: ${esc(v.agent || '—')}</p><div class="vessel-meta"><span>Loại hàng <b>${esc(v.cargo || '—')}</b></span><span>Cảng <b>${esc(v.port || '—')}</b></span><span>Cầu <b>${esc(v.berth || '—')}</b></span><span>ETA <b>${esc((v.eta || '—').replace('T', ' '))}</b></span></div></div><div>${statusPill(v.status)}</div></div>
+  <section class="panel">
+    <div class="tabs"><button class="active" onclick="vTab('overview',this)">Tổng quan &amp; CP1–CP3</button><button onclick="vTab('journal',this)">Nhật ký (${logs.filter(x => x.vesselId == v.id).length})</button><button onclick="vTab('events',this)">SOF (${events.filter(x => x.vesselId == v.id).length})</button><button onclick="vTab('photos',this)">Hình ảnh (${photos.filter(x => x.vesselId == v.id).length})</button><button onclick="vTab('docs',this)">Chứng từ (${docs.filter(x => x.vesselId == v.id).length})</button></div>
+    <div class="panel-body" id="vtabbody">${vOverview(v)}</div>
+  </section>`;
+}
+
+function vOverview(v) {
+  return stepper(v) + `<div class="grid2"><div><h3 style="font-size:13.5px;margin:0 0 10px">Thông tin chuyến tàu</h3><table><tbody>${[['Tên tàu', v.name], ['Số chuyến', v.voyage], ['Loại dịch vụ', v.type], ['Loại hàng', v.cargo], ['Cảng / địa điểm', v.port], ['Cầu / vị trí', v.berth], ['ETA', (v.eta || '').replace('T', ' ')], ['Nhân sự phụ trách', v.agent], ['Ghi chú', v.note]].map(x => `<tr><td class="muted">${x[0]}</td><td>${esc(x[1] || '—')}</td></tr>`).join('')}</tbody></table></div>
+  <div><h3 style="font-size:13.5px;margin:0 0 10px">Truy cập nhanh</h3><div class="actions" style="flex-direction:column;align-items:stretch">${btn('+ Nhật ký & sản lượng ca', 'openLog(' + v.id + ')')}${btn('+ Ghi nhận mốc SOF', 'openEvent(' + v.id + ')')}${btn('+ Thêm Daily report', 'openDaily()')}${btn('+ Thêm hình ảnh', 'openPhoto(' + v.id + ')')}${btn('+ Thêm chứng từ', 'openDoc(' + v.id + ')')}</div></div></div>`;
+}
+
+window.vTab = (t, el) => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('active')); el.classList.add('active');
+  const v = vessel(activeVessel);
+  const list = t === 'journal' ? logs.filter(x => x.vesselId == v.id) : t === 'events' ? events.filter(x => x.vesselId == v.id) : t === 'photos' ? photos.filter(x => x.vesselId == v.id) : docs.filter(x => x.vesselId == v.id);
+  const add = t === 'journal' ? `openLog(${v.id})` : t === 'events' ? `openEvent(${v.id})` : t === 'photos' ? `openPhoto(${v.id})` : `openDoc(${v.id})`;
+  $('#vtabbody').innerHTML = t === 'overview' ? vOverview(v) : `<div class="actions" style="margin-bottom:14px">${btn('+ Thêm mới', add, 'primary')}</div>${t === 'photos' ? photoCards(list) : t === 'events' ? eventList(list) : simpleTable(list, t)}`;
+};
+
+function simpleTable(arr, t) {
+  const cm = t === 'journal' ? cumMap() : {};
+  const C = t === 'journal'
+    ? [['time', 'Thời gian'], ['shift', 'Ca'], ['qty', 'Sản lượng'], ['cum', 'Lũy kế (% B/L)'], ['title', 'Nội dung'], ['detail', 'Chi tiết'], ['person', 'Người cập nhật']]
+    : [['name', 'Tên tài liệu'], ['type', 'Loại chứng từ'], ['date', 'Ngày'], ['status', 'Tình trạng'], ['note', 'Ghi chú']];
+  return `<div class="table-wrap"><table><thead><tr>${C.map(c => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${arr.length ? arr.map(x => `<tr>${C.map(c => `<td>${esc(c[0] === 'time' ? String(x.time || '').replace('T', ' ') : c[0] === 'cum' ? (cm[x.id] || '—') : x[c[0]] || '—')}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${C.length}" class="empty">Chưa có dữ liệu.</td></tr>`}</tbody></table></div>`;
+}
+
+function checklistPage() {
+  const v = vessel(activeVessel);
+  return head('Checklist kiểm soát CP1 – CP3', 'Tích chọn từng đầu mục theo giai đoạn để mở khóa chuyển giai đoạn và lưu trữ hồ sơ.', '') + vsel() + alertsBox(activeVessel) + (v ? [1, 2, 3].map(p => `<section class="panel"><div class="panel-head"><div><h3>CP${p} · Giai đoạn ${p}: ${SN[p]}</h3></div>${ckDone(v, p) ? '<span class="pill green">Đã kiểm tra</span>' : '<span class="pill amber">Chưa hoàn tất</span>'}</div><div class="panel-body">${CKS[p].map((t, i) => `<label class="ckrow"><input type="checkbox" ${ckOn(v, p, i) ? 'checked' : ''} ${v.locked ? 'disabled' : ''} onchange="tick('${v.id}_${p}_${i}',this.checked)"> <span>${t}</span><span class="pill ${ckOn(v, p, i) ? 'green' : ''}" style="margin-left:auto">${ckOn(v, p, i) ? 'Đã kiểm tra' : 'Chưa hoàn tất'}</span></label>`).join('')}</div></section>`).join('') + stepper(v) : '<div class="empty">Chưa có hồ sơ tàu.</div>');
+}
+
+function journalPage() {
+  return head('Nhật ký hiện trường', 'Ghi nhận sản lượng theo ca, tự động cộng dồn lũy kế (% B/L) và theo dõi bàn giao ca.', btn('↓ Xuất CSV', 'exportCSV()') + btn('+ Thêm cập nhật', 'openLog()', 'primary')) +
+    warnBox() + progBox() + `<section class="panel"><div class="panel-head"><div><h3>Danh sách nhật ký</h3><p>Ghi rõ thời điểm, ca trực, sản lượng và người cập nhật</p></div><input class="search" placeholder="Tìm kiếm..." oninput="filterRows(this.value)"></div><div id="logsTable">${simpleTable([...logs].sort((a, b) => b.time.localeCompare(a.time)).map(x => ({ ...x, title: (vessel(x.vesselId)?.name || '') + ' · ' + x.title })), 'journal')}</div></section>`;
+}
+window.filterRows = q => {
+  const filtered = logs.filter(x => (JSON.stringify(x) + ' ' + (vessel(x.vesselId)?.name || '')).toLowerCase().includes(q.toLowerCase())).map(x => ({ ...x, title: (vessel(x.vesselId)?.name || '') + ' · ' + x.title }));
+  $('#logsTable').innerHTML = simpleTable(filtered, 'journal');
+};
+
+function dailyPage() {
+  const L = daily.filter(d => d.vesselId == activeVessel).sort((a, b) => (b.date + b.from).localeCompare(a.date + a.from));
+  return head('Daily report', 'Báo cáo hằng ngày: nội dung công việc, khung giờ và hình ảnh làm hàng tại thời điểm đó.', btn('+ Tạo Daily report', 'openDaily()', 'primary')) + vsel() + (L.length ? L.map(d => `<section class="panel"><div class="panel-head"><div><h3>${esc(d.date)} · ${esc(d.from)} – ${esc(d.to)}</h3><p>${esc(vessel(d.vesselId)?.name || '')} · Người lập: ${esc(d.person || '—')}</p></div><span class="pill blue">${(d.imgs || []).length} ảnh</span></div><div class="panel-body"><p style="margin:0 0 ${(d.imgs || []).length ? 14 : 0}px;white-space:pre-wrap">${esc(d.content)}</p>${(d.imgs || []).length ? `<div class="photo-grid">${d.imgs.map((s, i) => `<div class="photo" style="cursor:pointer" onclick="viewImg(${d.id},${i})"><img src="${s}" style="width:100%;height:125px;object-fit:cover;display:block"></div>`).join('')}</div>` : ''}</div></section>`).join('') : '<section class="panel"><div class="empty"><b>Chưa có Daily report</b>Bấm "+ Tạo Daily report" để thêm báo cáo cho tàu này.</div></section>');
+}
+window.viewImg = (id, i) => { const d = daily.find(x => x.id === id); if (d) openModal('Hình ảnh làm hàng · ' + d.date + ' ' + d.from + '–' + d.to, `<img src="${d.imgs[i]}" style="width:100%;border-radius:8px">`); };
+
+function reconPage() {
+  const v = vessel(activeVessel);
+  if (!v) return head('Đối chiếu số liệu', '', '') + '<div class="empty">Chưa có hồ sơ tàu.</div>';
+  const r = RC(v), S = { ok: ['green', 'Đạt'], over: ['red', 'Vượt ngưỡng'], na: ['', 'Chưa đủ số liệu'] }, sg = x => x > 0 ? '+' : '';
+  return head('Đối chiếu B/L – Draft Survey – ROROC', 'So sánh 3 nguồn số liệu với ngưỡng dung sai công ty.', btn('Nhập số liệu', 'openRecon()', 'primary')) + vsel() + alertsBox(v.id) +
+    `<div class="stats">${[['B/L', r.bl > 0 ? fmt(r.bl) + ' ' + r.unit : '—'], ['Draft Survey', r.ds > 0 ? fmt(r.ds) + ' ' + r.unit : '—'], ['ROROC', r.roroc > 0 ? fmt(r.roroc) + ' ' + r.unit : '—'], ['Ngưỡng dung sai', '±' + r.tol + '%']].map(x => `<div class="stat"><div class="stat-top">${x[0]}</div><strong style="font-size:21px">${x[1]}</strong></div>`).join('')}</div>
+    <section class="panel"><div class="table-wrap"><table><thead><tr><th>Cặp đối chiếu</th><th>Giá trị 1</th><th>Giá trị 2</th><th>Chênh lệch (${r.unit})</th><th>Chênh lệch (%)</th><th>Ngưỡng</th><th>Trạng thái</th></tr></thead><tbody>${reconRows(v).map(x => `<tr><td class="shipname">${x.label}</td><td>${x.a ? fmt(x.a) : '—'}</td><td>${x.b ? fmt(x.b) : '—'}</td><td>${x.st === 'na' ? '—' : sg(x.d) + fmt(x.d)}</td><td>${x.st === 'na' ? '—' : sg(x.p) + fmt(x.p) + '%'}</td><td>±${x.tol}%</td><td><span class="pill ${S[x.st][0]}"><i class="dot"></i>${S[x.st][1]}</span></td></tr>`).join('')}</tbody></table></div></section>
+    <div class="notice">Ngưỡng dung sai mặc định 0,5% (có thể điều chỉnh theo quy định thực tế của Công ty). Chênh lệch % tính theo giá trị 1 của mỗi cặp.</div>`;
+}
+
+const evItem = e => `<div class="event"><b>${esc(e.title)} ${e.type ? `<span class="pill ${e.type.startsWith('Gián') ? 'amber' : 'blue'}">${esc(e.type.split(' / ')[0])}</span>` : ''}</b><small>${esc(e.time.replace('T', ' '))} · ${esc(e.person || '')}</small>${e.cause ? `<p><b>Nguyên nhân:</b> ${esc(e.cause)}</p>` : ''}<p><b>Nguồn xác nhận:</b> ${esc(e.source || '—')}${e.photo ? ' · 📷 có ảnh' : ''}</p>${e.detail ? `<p>${esc(e.detail)}</p>` : ''}</div>`;
+function eventList(arr) { return arr.length ? `<div class="timeline">${[...arr].sort((a, b) => a.time.localeCompare(b.time)).map(evItem).join('')}</div>` : '<div class="empty">Chưa ghi nhận mốc sự kiện.</div>'; }
+function sofPage() {
+  return head('Dòng thời gian SOF', 'Mọi sự kiện được tổng hợp vào một dòng thời gian duy nhất và kiểm tra logic trình tự.', btn('+ Ghi nhận sự kiện', 'openEvent()', 'primary') + btn('Xuất SOF', 'exportSOF()', 'dark')) + vsel() + alertsBox(activeVessel) + `<section class="panel"><div class="panel-body">${eventList(events.filter(e => e.vesselId == activeVessel))}</div></section><div class="notice">Các mốc thời gian cần đối chiếu với nguồn xác nhận trước khi hoàn thiện SOF.</div>`;
+}
+
+function photoCards(arr) {
+  return arr.length ? `<div class="photo-grid">${arr.map(p => `<div class="photo"><div class="photo-art" onclick="previewPhoto(${p.id})">${p.data ? `<img src="${p.data}">` : '▧'}</div><div class="photo-info"><b>${esc(p.caption || 'Hình ảnh hiện trường')}</b><small>${esc(vessel(p.vesselId)?.name || '')} · ${esc(p.time.replace('T', ' '))}</small><small>${esc(p.hold || 'Chưa rõ hầm')} · ${esc(p.person || '')}</small></div></div>`).join('')}</div>` : '<div class="empty"><b>Chưa có hình ảnh</b>Hình ảnh sẽ hiển thị theo từng tàu sau khi được thêm vào hệ thống.</div>';
+}
+window.previewPhoto = id => { const p = photos.find(x => x.id === id); if (p && p.data) openModal(p.caption || 'Hình ảnh hiện trường', `<img src="${p.data}" style="width:100%;border-radius:8px">`); };
+function photosPage() {
+  return head('Hình ảnh hiện trường', 'Lưu trữ hình ảnh theo tàu, thời điểm, hầm hàng và trạng thái quan sát.', btn('+ Thêm hình ảnh', 'openPhoto()', 'primary')) + `<section class="panel"><div class="panel-head"><div><h3>Thư viện hình ảnh (${photos.length})</h3><p>Bấm vào ảnh để xem phóng to</p></div></div><div class="panel-body">${photoCards(photos)}</div></section>`;
+}
+
+const trow = (v, p, i) => {
+  const n = REQ[p][i], ok = hasDoc(v, n), d = docs.find(x => x.vesselId == v.id && x.name === n);
+  return `<div class="ckrow"><span>📄 ${esc(n)}${d && d.note ? ` <span class="muted">· ${esc(d.note)}</span>` : ''}</span><span style="margin-left:auto;display:flex;gap:8px;align-items:center"><span class="pill ${ok ? 'green' : 'red'}"><i class="dot"></i>${ok ? 'Đã tải lên' : 'Còn thiếu'}</span>${ok || v.locked ? '' : `<button class="linkbtn" onclick="openUp(${p},${i})">Tải lên</button>`}</span></div>`;
+};
+const folder = (v, p, t) => `<section class="panel"><div class="panel-head"><div><h3>📁 ${t}</h3><p>${missing(v, p).length ? 'Còn thiếu ' + missing(v, p).length + ' chứng từ' : 'Đủ bộ chứng từ'}</p></div></div><div class="panel-body">${REQ[p].map((n, i) => trow(v, p, i)).join('')}</div></section>`;
+function reportsPage() {
+  const v = vessel(activeVessel);
+  if (!v) return head('Báo cáo & chứng từ', '', '') + '<div class="empty">Chưa có hồ sơ tàu.</div>';
+  const all = Object.values(REQ).flat(), other = docs.filter(d => d.vesselId == v.id && !all.includes(d.name));
+  return head('Báo cáo & chứng từ', 'Cây thư mục chứng từ bắt buộc theo CP1 & CP3 và xuất Biên bản sự kiện (SOF).', btn('Xuất SOF', 'exportSOF()', 'primary') + btn('+ Tài liệu khác', 'openDoc()')) + vsel() + folder(v, 1, '01 · Chứng từ đầu vào (Giai đoạn 1)') + folder(v, 3, '03 · Chứng từ hoàn công (Giai đoạn 3)') + `<section class="panel"><div class="panel-head"><h3>📁 Tài liệu khác</h3></div>${simpleTable(other, 'docs')}</section>`;
+}
+
+function handoverPage() {
+  const P = pendingHO();
+  return head('Bàn giao ca trực', 'Tự động phát hiện các ca đã ghi sản lượng nhưng chưa xác nhận bàn giao.', btn('+ Xác nhận bàn giao', 'openHandover(0)', 'primary')) +
+    `<section class="panel"><div class="table-wrap"><table><thead><tr><th>Tàu</th><th>Ca</th><th>Người giao</th><th>Người nhận</th><th>Nội dung</th><th>Trạng thái</th></tr></thead><tbody>
+      ${P.map((x, j) => `<tr><td class="shipname">${esc(vessel(x.vesselId)?.name || '')}</td><td>${x.date} · ${esc(x.shift)}</td><td>${esc(x.person)}</td><td>—</td><td>—</td><td><span class="pill red"><i class="dot"></i>Chưa xác nhận bàn giao ca</span> <button class="linkbtn" onclick="openHandover(${j})">Xác nhận →</button></td></tr>`).join('')}
+      ${handovers.map(h => `<tr><td class="shipname">${esc(vessel(h.vesselId)?.name || '')}</td><td>${h.date} · ${esc(h.shift)}</td><td>${esc(h.from)}</td><td>${esc(h.to)}</td><td>${esc(h.detail || '—')}</td><td><span class="pill green"><i class="dot"></i>Đã xác nhận</span></td></tr>`).join('') || (P.length ? '' : '<tr><td colspan="6" class="empty">Chưa có nội dung bàn giao.</td></tr>')}
+    </tbody></table></div></section>`;
+}
+
+// ---- MODALS & FORMS ----
+function openModal(title, body) { $('#modalTitle').textContent = title; $('#modalContent').innerHTML = body; $('#modal').classList.add('show'); }
+window.closeModal = () => $('#modal').classList.remove('show');
+function form(fields, submit) { return `<form onsubmit="${submit};return false"><div class="field-grid">${fields}</div><div class="form-actions"><button type="button" class="btn" onclick="closeModal()">Hủy</button><button class="btn primary" type="submit">Lưu thông tin</button></div></form>`; }
+function f(label, id, type = 'text', required = false, extra = '') { return `<div class="field"><label>${label}${required ? ' *' : ''}</label><input id="${id}" type="${type}" ${required ? 'required' : ''} ${extra}></div>`; }
+function fs(label, id, options, sel = '') { return `<div class="field"><label>${label}</label><select id="${id}">${options.map(o => `<option ${o === sel ? 'selected' : ''}>${o}</option>`).join('')}</select></div>`; }
+function ft(label, id, valText = '') { return `<div class="field full"><label>${label}</label><textarea id="${id}">${esc(valText)}</textarea></div>`; }
+const val = id => document.getElementById(id)?.value || '';
+const shrink = fl => new Promise(r => { const rd = new FileReader(); rd.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 900 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = im.width * k; c.height = im.height * k; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); r(c.toDataURL('image/jpeg', .72)); }; im.onerror = () => r(''); im.src = rd.result; }; rd.onerror = () => r(''); rd.readAsDataURL(fl); });
+
+window.openVessel = (id = null) => {
+  const v = id ? vessel(id) : { type: 'Nhập khẩu', status: 'Đang theo dõi', agent: currentUser.name };
+  openModal(id ? 'Chỉnh sửa hồ sơ tàu' : 'Tạo hồ sơ tàu', form(
+    f('Tên tàu', 'vname', 'text', true, `value="${esc(v.name || '')}"`) + f('Số chuyến / Voyage', 'voyage', 'text', false, `value="${esc(v.voyage || '')}"`) +
+    fs('Loại dịch vụ', 'vtype', ['Nhập khẩu', 'Xuất khẩu', 'Khác'], v.type) + f('Loại hàng', 'cargo', 'text', false, `value="${esc(v.cargo || '')}"`) +
+    f('Cảng / địa điểm', 'port', 'text', false, `value="${esc(v.port || '')}"`) + f('Cầu / vị trí', 'berth', 'text', false, `value="${esc(v.berth || '')}"`) +
+    f('ETA', 'eta', 'datetime-local', false, `value="${esc(v.eta || '')}"`) + fs('Trạng thái', 'vstatus', ['Đang theo dõi', 'Chờ thực hiện', 'Đã hoàn tất'], v.status) +
+    f('Nhân sự phụ trách', 'agent', 'text', false, `value="${esc(v.agent || currentUser.name)}"`) + ft('Ghi chú', 'vnote', v.note || ''), `saveVessel(${id || 'null'})`
+  ));
+};
+window.saveVessel = id => {
+  const old = id ? vessel(id) : {};
+  const v = { ...old, id: id || Date.now(), name: val('vname'), voyage: val('voyage'), type: val('vtype'), cargo: val('cargo'), port: val('port'), berth: val('berth'), eta: val('eta'), status: val('vstatus'), agent: val('agent'), note: val('vnote'), phase: old.phase || 1 };
+  if (id) vessels = vessels.map(x => x.id === id ? v : x); else vessels.unshift(v);
+  activeVessel = v.id; persist(); closeModal(); page = 'vessels'; subtab = 'detail'; renderVesselDetail(); toast('Đã lưu hồ sơ tàu');
+};
+
+window.openLog = (id = activeVessel) => {
+  openModal('Nhập sản lượng & nhật ký hiện trường', form(
+    `<div class="field full"><label>Tàu *</label>${vesselSelect()}</div>` +
+    f('Thời gian cập nhật', 'ltime', 'datetime-local', true, `value="${dateNow()}"`) + fs('Ca trực', 'lshift', SHIFTS) +
+    f('Sản lượng dỡ ghi nhận', 'lqty', 'number', false, 'min="0" step="any"') + fs('Đơn vị', 'lunit', ['MT', 'm³', 'Khác']) +
+    fs('Nhóm nội dung', 'ltype', ['Diễn biến dỡ hàng (ghi nhận)', 'Tình hình tàu / hầm hàng', 'Thời tiết', 'Trao đổi / phối hợp', 'Khác']) +
+    f('Tiêu đề cập nhật', 'ltitle', 'text', true) + f('Người cập nhật', 'lperson', 'text', true, `value="${esc(currentUser.name)}"`) + ft('Nội dung / ghi chú', 'ldetail'), 'saveLog()'
+  ));
+  if (id) $('#vesselId').value = id;
+};
+window.saveLog = () => {
+  const v = vessel(+val('vesselId')); if (!can(v, 2)) return;
+  const q = val('lqty');
+  logs.unshift({ id: Date.now(), vesselId: v.id, time: val('ltime'), type: val('ltype'), shift: val('lshift'), qty: q ? q + ' ' + val('lunit') : '', title: val('ltitle'), person: val('lperson'), detail: val('ldetail') });
+  persist(); closeModal(); render(); toast('Đã thêm nhật ký hiện trường');
+};
+
+window.openEvent = (id = activeVessel) => {
+  openModal('Ghi nhận mốc sự kiện / gián đoạn', form(
+    `<div class="field full"><label>Tàu *</label>${vesselSelect()}</div>` +
+    f('Thời điểm sự kiện', 'etime', 'datetime-local', true, `value="${dateNow()}"`) +
+    fs('Loại sự kiện', 'etype', ['NOR / Notice of Readiness', 'Tàu đến / Arrival', 'Bắt đầu làm hàng', 'Gián đoạn / tạm ngừng', 'Tiếp tục làm hàng', 'Hoàn tất làm hàng', 'Tàu rời / Departure', 'Khác']) +
+    f('Tên mốc sự kiện', 'etitle', 'text', true) + f('Người ghi nhận', 'eperson', 'text', true, `value="${esc(currentUser.name)}"`) +
+    f('Nguồn xác nhận (bắt buộc)', 'esrc', 'text', true, 'placeholder="VD: Thuyền trưởng, SOF cảng, email..."') +
+    f('Nguyên nhân gián đoạn (bắt buộc nếu gián đoạn)', 'ecause') +
+    `<div class="field full"><label>Hình ảnh hiện trường (tùy chọn)</label><input id="efile" type="file" accept="image/*"></div>` + ft('Diễn giải', 'edetail'), 'saveEvent()'
+  ));
+  if (id) $('#vesselId').value = id;
+};
+window.saveEvent = async () => {
+  const v = vessel(+val('vesselId')), t = val('etype'), gd = t.startsWith('Gián đoạn'), early = ['NOR / Notice of Readiness', 'Tàu đến / Arrival', 'Khác'].includes(t);
+  if (!can(v, early ? 1 : 2)) return;
+  if (!val('esrc').trim() || (gd && !val('ecause').trim())) return warn('Thiếu thông tin bắt buộc', ['Nguồn xác nhận' + (gd ? ' và Nguyên nhân gián đoạn' : '') + ' không được để trống.']);
+  const fl = $('#efile').files[0];
+  const img = fl ? await shrink(fl) : '';
+  events.push({ id: Date.now(), vesselId: v.id, time: val('etime'), type: t, title: val('etitle'), person: val('eperson'), source: val('esrc'), cause: val('ecause'), detail: val('edetail'), photo: !!img });
+  if (img) photos.unshift({ id: Date.now() + 1, vesselId: v.id, time: val('etime'), hold: '', person: val('eperson'), state: 'Gián đoạn', caption: 'Gián đoạn: ' + val('etitle'), data: img });
+  persist(); closeModal(); render(); toast('Đã ghi nhận mốc SOF');
+  const te = timeErrors(v); if (te.length) warn('Cảnh báo logic mốc thời gian', te);
+};
+
+window.openDaily = () => {
+  openModal('Tạo Daily report', form(
+    `<div class="field full"><label>Tàu *</label>${vesselSelect()}</div>` +
+    f('Ngày', 'ddt', 'date', true, `value="${dateNow().slice(0, 10)}"`) + f('Người lập', 'dper', 'text', true, `value="${esc(currentUser.name)}"`) +
+    f('Từ giờ', 'dfrom', 'time', true) + f('Đến giờ', 'dto', 'time', true) + ft('Nội dung *', 'dcon') +
+    `<div class="field full"><label>Hình ảnh làm hàng (chọn được nhiều ảnh)</label><input id="dfile" type="file" accept="image/*" multiple></div>`, 'saveDaily()'
+  ));
+  $('#dcon').required = true;
+  if (activeVessel) $('#vesselId').value = activeVessel;
+};
+window.saveDaily = async () => {
+  const v = vessel(+val('vesselId')); if (!can(v, 2)) return;
+  const imgs = (await Promise.all([...$('#dfile').files].map(shrink))).filter(Boolean);
+  daily.unshift({ id: Date.now(), vesselId: v.id, date: val('ddt'), person: val('dper'), from: val('dfrom'), to: val('dto'), content: val('dcon'), imgs });
+  activeVessel = v.id; persist(); closeModal(); render(); toast('Đã lưu Daily report');
+};
+
+window.openRecon = () => {
+  const v = vessel(activeVessel); if (!can(v, 0)) return;
+  const r = RC(v), n = (l, id, x) => f(l, id, 'number', false, `min="0" step="any" value="${x ?? ''}"`);
+  openModal('Nhập số liệu đối chiếu', form(fs('Đơn vị', 'runit', ['MT', 'm³'], r.unit) + f('Ngưỡng dung sai (%)', 'rtol', 'number', true, `min="0" step="any" value="${r.tol}"`) + n('Số lượng theo B/L', 'rbl', r.bl) + n('Draft Survey', 'rds', r.ds) + n('ROROC', 'rro', r.roroc), 'saveRecon()'));
+};
+window.saveRecon = () => {
+  const v = vessel(activeVessel), g = id => val(id) === '' ? null : +val(id);
+  v.recon = { unit: val('runit'), tol: +val('rtol'), bl: g('rbl'), ds: g('rds'), roroc: g('rro') };
+  persist(); closeModal(); render(); toast('Đã cập nhật số liệu đối chiếu');
+};
+
+window.openPhoto = (id = activeVessel) => {
+  openModal('Thêm hình ảnh hiện trường', `<form onsubmit="savePhoto();return false"><div class="field-grid"><div class="field full"><label>Tàu *</label>${vesselSelect()}</div>${f('Thời điểm chụp', 'ptime', 'datetime-local', true, `value="${dateNow()}"`)}${f('Số hầm hàng', 'phold')}${f('Người gửi / chụp', 'pperson', 'text', false, `value="${esc(currentUser.name)}"`)}${fs('Trạng thái quan sát', 'pstate', ['Hầm tàu', 'Đang dọn dẹp', 'Đang xúc / dỡ hàng', 'Gián đoạn', 'Khác'])}${f('Chú thích hình ảnh', 'pcaption')}<div class="field full"><label>Chọn ảnh (JPG, PNG - tự nén gọn)</label><input id="pfile" type="file" accept="image/*"></div></div><div class="form-actions"><button type="button" class="btn" onclick="closeModal()">Hủy</button><button class="btn primary">Lưu hình ảnh</button></div></form>`);
+  if (id) $('#vesselId').value = id;
+};
+window.savePhoto = async () => {
+  const fl = $('#pfile').files[0], data = fl ? await shrink(fl) : '';
+  photos.unshift({ id: Date.now(), vesselId: Number(val('vesselId')), time: val('ptime'), hold: val('phold'), person: val('pperson'), state: val('pstate'), caption: val('pcaption'), data });
+  persist(); closeModal(); render(); toast('Đã lưu hình ảnh hiện trường');
+};
+
+window.openDoc = (id = activeVessel) => {
+  openModal('Thêm tài liệu / chứng từ', form(`<div class="field full"><label>Tàu *</label>${vesselSelect()}</div>` + f('Tên tài liệu', 'dname', 'text', true) + fs('Loại tài liệu', 'dtype', ['Daily Report', 'Statement of Facts (SOF)', 'Notice of Readiness (NOR)', 'Bill of Lading (B/L)', 'Report of Receipts and Outturn (ROROC)', 'Email / Thư trao đổi', 'Khác']) + f('Ngày tài liệu', 'ddate', 'date', false, `value="${dateNow().slice(0, 10)}"`) + f('Tình trạng', 'dstatus', 'text', false, 'value="Đã tải lên"') + ft('Ghi chú / nơi lưu trữ', 'dnote'), 'saveDoc()'));
+  if (id) $('#vesselId').value = id;
+};
+window.saveDoc = () => { docs.unshift({ id: Date.now(), vesselId: Number(val('vesselId')), name: val('dname'), type: val('dtype'), date: val('ddate'), status: val('dstatus'), note: val('dnote') }); persist(); closeModal(); render(); toast('Đã thêm tài liệu'); };
+
+window.openUp = (p, i) => {
+  const v = vessel(activeVessel), n = REQ[p][i]; if (!can(v, 0)) return;
+  openModal('Tải lên chứng từ: ' + n, form(f('Tệp chứng từ (tùy chọn)', 'ufile', 'file') + f('Ngày chứng từ', 'udate', 'date', false, `value="${dateNow().slice(0, 10)}"`) + ft('Ghi chú', 'unote'), `saveUp(${p},${i})`));
+};
+window.saveUp = (p, i) => {
+  const v = vessel(activeVessel), n = REQ[p][i], fl = $('#ufile').files[0];
+  docs.unshift({ id: Date.now(), vesselId: v.id, name: n, type: n, date: val('udate'), status: 'Đã tải lên', note: fl ? fl.name : val('unote') });
+  persist(); closeModal(); render(); toast('Đã tải lên: ' + n);
+};
+
+window.openHandover = i => {
+  const P = pendingHO();
+  openModal('Xác nhận bàn giao ca trực', P.length ? form(`<div class="field full"><label>Ca cần bàn giao *</label><select id="hsel">${P.map((x, j) => `<option value="${j}" ${j === i ? 'selected' : ''}>${esc(vessel(x.vesselId)?.name || '')} · ${x.date} · ${esc(x.shift)} · ${esc(x.person)}</option>`).join('')}</select></div>` + f('Người nhận bàn giao', 'hto', 'text', true) + ft('Tình hình / nội dung cần tiếp tục theo dõi', 'hdetail'), 'saveHandover()') : '<div class="empty"><b>Không có ca chờ xác nhận</b>Ca xuất hiện khi có nhật ký sản lượng chưa bàn giao.</div>');
+};
+window.saveHandover = () => {
+  const x = pendingHO()[+val('hsel')]; if (!x) return;
+  handovers.unshift({ id: Date.now(), vesselId: x.vesselId, date: x.date, shift: x.shift, from: x.person, to: val('hto'), detail: val('hdetail'), time: dateNow() });
+  persist(); closeModal(); render(); toast('Đã xác nhận bàn giao ca');
+};
+
+window.exportSOF = () => {
+  const v = vessel(activeVessel); if (!v) return;
+  const ev = events.filter(e => e.vesselId == v.id).sort((a, b) => a.time.localeCompare(b.time));
+  const lg = logs.filter(l => l.vesselId == v.id).sort((a, b) => a.time.localeCompare(b.time));
+  openModal('Biên bản sự kiện (SOF) — ' + v.name, `
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--navy);padding-bottom:10px;margin-bottom:12px">
+        <div><div style="font-size:10px;font-weight:800;color:var(--blue);letter-spacing:1px">SAIGON CUULONG JSC · SHIPPING AGENCY</div><h3 style="margin:2px 0">STATEMENT OF FACTS (SOF)</h3></div>
+        <div style="text-align:right;font-size:11px;color:var(--muted)">Ngày xuất: <b>${dateNow().slice(0, 10)}</b><br>Người lập: <b>${esc(currentUser.name)}</b></div>
+      </div>
+      <p class="muted" style="margin:0 0 12px;font-size:12.5px"><b>${esc(v.name)}</b> · Voy ${esc(v.voyage || '—')} · ${esc(v.cargo || '—')} · ${esc(v.port || '—')}</p>
+      <div class="table-wrap"><table><thead><tr><th>Thời gian</th><th>Sự kiện</th><th>Nguyên nhân</th><th>Nguồn xác nhận</th></tr></thead><tbody>${ev.length ? ev.map(e => `<tr><td>${esc(e.time.replace('T', ' '))}</td><td><b>${esc(e.title)}</b></td><td>${esc(e.cause || '—')}</td><td>${esc(e.source || '—')}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">Chưa có sự kiện.</td></tr>'}</tbody></table></div>
+      <h3 style="margin:16px 0 8px;font-size:13px">Sản lượng dỡ theo ca</h3>
+      ${simpleTable(lg, 'journal')}
+      <div class="sof-sign">
+        <div><div><b>MASTER / CHIEF OFFICER</b></div><div class="sig-box">Ký &amp; đóng dấu tàu</div></div>
+        <div><div><b>AGENCY REPRESENTATIVE</b></div><div class="sig-box">${esc(currentUser.name)}</div></div>
+      </div>
+    </div>
+    <div class="form-actions"><button class="btn" onclick="closeModal()">Đóng</button><button class="btn primary" onclick="window.print()">⎙ In / Lưu PDF</button></div>`);
+};
+
+window.exportCSV = () => {
+  const rows = [['Tàu', 'Chuyến', 'Thời gian', 'Ca', 'Sản lượng', 'Nhóm nội dung', 'Tiêu đề', 'Người cập nhật', 'Nội dung'], ...logs.map(l => [vessel(l.vesselId)?.name || '', vessel(l.vesselId)?.voyage || '', l.time, l.shift || '', l.qty || '', l.type, l.title, l.person, l.detail])];
+  const csv = '\ufeff' + rows.map(r => r.map(x => '"' + String(x ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'SGCL_nhat_ky_hien_truong.csv'; a.click(); URL.revokeObjectURL(a.href);
+  toast('Đã xuất file CSV');
+};
+
+function render() {
+  updateBadges();
+  if (page === 'vessels' && subtab === 'detail') { renderVesselDetail(); return; }
+  const views = { dashboard, vessels: vesselsPage, checklist: checklistPage, journal: journalPage, daily: dailyPage, recon: reconPage, sof: sofPage, photos: photosPage, reports: reportsPage, handover: handoverPage };
+  $('#content').innerHTML = (views[page] || dashboard)();
+  if (page === 'dashboard') renderCharts();
+}
+
+// ---- GLOBAL BINDINGS ----
+document.querySelectorAll('#mainNav button').forEach(b => b.addEventListener('click', () => go(b.dataset.page)));
+$('#menuToggle').addEventListener('click', () => { $('#sidebar').classList.toggle('open'); $('#drawerBg').classList.toggle('show'); });
+$('#drawerBg').addEventListener('click', closeDrawer);
+$('#modalCloseBtn').addEventListener('click', closeModal);
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+$('#btnTopSof').addEventListener('click', () => exportSOF());
+$('#btnTopCsv').addEventListener('click', () => exportCSV());
+$('#btnOpenLogin').addEventListener('click', () => $('#loginScreen').classList.add('show'));
+$('#loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const em = $('#loginEmail').value.trim().toLowerCase();
+  currentUser = USERS.find(u => u.email.toLowerCase() === em) || USERS[0];
+  persist(); $('#loginScreen').classList.remove('show'); render(); toast('Đã đăng nhập: ' + currentUser.name);
+});
+document.querySelectorAll('[data-quick-login]').forEach(b => b.addEventListener('click', () => {
+  currentUser = USERS.find(u => u.id === b.dataset.quickLogin) || USERS[0];
+  persist(); $('#loginScreen').classList.remove('show'); render(); toast('Đã đăng nhập: ' + currentUser.name);
+}));
+
+$('#btnBackupJson').addEventListener('click', () => {
+  const payload = { exportedAt: new Date().toISOString(), author: 'Trương Nguyễn Bảo Ngọc', vessels, cks, logs, daily, events, photos, docs, handovers };
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })); a.download = `SGCL_backup_${dateNow().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+  toast('Đã tải xuống bản sao lưu JSON');
+});
+$('#btnRestoreJson').addEventListener('click', () => $('#restoreInput').click());
+$('#restoreInput').addEventListener('change', e => {
+  const fl = e.target.files[0]; if (!fl) return;
+  const rd = new FileReader();
+  rd.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!Array.isArray(d.vessels)) throw new Error('Invalid');
+      vessels = d.vessels; cks = d.cks || {}; logs = d.logs || []; daily = d.daily || []; events = d.events || []; photos = d.photos || []; docs = d.docs || []; handovers = d.handovers || [];
+      activeVessel = vessels[0]?.id || null; persist(); render(); toast('Khôi phục dữ liệu thành công');
+    } catch { toast('File JSON không hợp lệ'); }
+    e.target.value = '';
+  };
+  rd.readAsText(fl);
+});
+
+
+// ---- LIVE SERVER SYNC (Node.js / Express) ----
+async function syncFromServer() {
+  try {
+    const r = await fetch('/api/bootstrap');
+    if (!r.ok) throw new Error('offline');
+    const d = await r.json();
+    vessels = d.vessels || vessels;
+    cks = d.cks || {};
+    logs = d.logs || [];
+    daily = d.daily || [];
+    events = d.events || [];
+    photos = d.photos || [];
+    docs = d.docs || [];
+    handovers = d.handovers || [];
+    if (!vessels.some(v => String(v.id) === String(activeVessel))) activeVessel = vessels[0]?.id || null;
+  } catch {}
+  render();
+}
+
+const _origPersist = persist;
+persist = function() {
+  _origPersist();
+  fetch('/api/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vessels, cks, logs, daily, events, photos, docs, handovers })
+  }).catch(() => {});
+};
+
+syncFromServer();
+</script>
+</body>
+</html>

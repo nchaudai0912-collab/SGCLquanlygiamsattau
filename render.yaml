@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: sgcl-vessel-agency-ops
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
